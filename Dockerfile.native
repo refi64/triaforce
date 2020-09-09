@@ -1,0 +1,23 @@
+FROM registry.access.redhat.com/ubi8/ubi:8.1 AS build
+WORKDIR /build
+ADD . /build
+RUN dnf install -y gcc unzip zlib-devel \
+  && curl -Lo graalvm.tar.gz https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-20.2.0/graalvm-ce-java11-linux-amd64-20.2.0.tar.gz \
+  && mkdir graalvm && tar -C graalvm --strip-components 1 -xvf graalvm.tar.gz && rm -f graalvm.tar.gz \
+  && export GRAALVM_HOME=$PWD/graalvm && $GRAALVM_HOME/bin/gu install native-image \
+  && export JAVA_HOME=$GRAALVM_HOME && ./mvnw package -Pnative -Dmaven.test.skip=true \
+  && unzip target/quarkus-app/lib/main/org.rocksdb.rocksdbjni-*.jar librocksdbjni-linux64.so \
+  && cp target/*-runner application
+
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.1
+WORKDIR /app/
+RUN chown 1001 /app \
+  && chmod "g+rwX" /app \
+  && chown 1001:root /app
+COPY --chown=1001:root --from=build /build/application /app/application
+COPY --chown=1001:root --from=build /build/librocksdbjni-linux64.so /app/librocksdbjni-linux64.so
+
+EXPOSE 8080
+USER 1001
+
+CMD ["./application", "-Dquarkus.http.host=0.0.0.0"]
