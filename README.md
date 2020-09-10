@@ -26,9 +26,13 @@ Therefore, to use the API, simply choose a project name and gather some proper, 
 client (e.g. `Settings.Secure.ANDROID_ID`), then call the endpoint. If a trial was not active for
 the particular client, it will immediately be started.
 
-## Building
+## Usage
 
 A Dockerfile is available in the root directory that will build and run Triaforce using GraalVM.
+Note that the Dockerfile runs as UID 1001, so any volumes you use must be writable by that UID.
+
+## Building
+
 If you want to build it from scratch, follow the commands the Dockerfile runs, as well as the
 [standard Quarkus native binary directions](https://quarkus.io/guides/building-native-image). To
 summarize:

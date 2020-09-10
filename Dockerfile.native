@@ -1,11 +1,14 @@
 FROM registry.access.redhat.com/ubi8/ubi:8.1 AS build
 WORKDIR /build
-ADD . /build
-RUN dnf install -y gcc unzip zlib-devel \
+ENV GRAALVM_HOME=/build/graalvm
+ENV JAVA_HOME=/build/graalvm
+RUN dnf install -y gcc unzip zlib-devel && dnf clean all \
   && curl -Lo graalvm.tar.gz https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-20.2.0/graalvm-ce-java11-linux-amd64-20.2.0.tar.gz \
   && mkdir graalvm && tar -C graalvm --strip-components 1 -xvf graalvm.tar.gz && rm -f graalvm.tar.gz \
-  && export GRAALVM_HOME=$PWD/graalvm && $GRAALVM_HOME/bin/gu install native-image \
-  && export JAVA_HOME=$GRAALVM_HOME && ./mvnw package -Pnative -Dmaven.test.skip=true \
+  && $GRAALVM_HOME/bin/gu install native-image
+
+COPY . /build
+RUN ./mvnw package -Pnative -Dmaven.test.skip=true \
   && unzip target/quarkus-app/lib/main/org.rocksdb.rocksdbjni-*.jar librocksdbjni-linux64.so \
   && cp target/*-runner application
 
